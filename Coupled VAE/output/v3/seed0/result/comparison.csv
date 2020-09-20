@@ -1,0 +1,2 @@
+coupling_dist,coupling_loss,log_decisiveness,log_accuracy,log_robustness,run_time
+0.15,0.15,1.1488016196570019e-15,3.188393384466729e-52,2.4813477037407546e-138,8.515669631958009
