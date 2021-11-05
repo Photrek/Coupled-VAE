@@ -773,7 +773,7 @@ class VAE:
         self.optimizer = tfk.optimizers.Adam(learning_rate)
         self.model = VAEModel(z_dim, n_filter_base, seed, dtype)
         metrics_col = ['epoch', 'train_neg_elbo', 'train_recon_loss', 'train_coupled_div'] + \
-                      [f'{x}_{y}' for x in ['train_elbo', 'train_recon', 'train_coupled_div'] 
+                      [f'{x}_{y}' for x in ['elbo', 'recon', 'coupled_div'] 
                                   for y in [
                                           'decisiveness', 
                                           'accuracy', 
@@ -825,13 +825,23 @@ class VAE:
         for epoch in range(1, n_epoch + 1):
 
             # Training loop
+            # Create empty lists to hold the training losses
+            loss_lst, neg_ll_lst, kl_div_lst, ll_values_lst, kl_values_lst = [], [], [], [], []
             start_time = time.time()
             for train_x in tqdm(train_dataset):
-                self.train_step(train_x)
-                loss, neg_ll, kl_div, ll_values, kl_values = self.compute_loss(
-                  train_x
-                  )
+              loss, neg_ll, kl_div, ll_values, kl_values = self.train_step(train_x)
+              loss_lst.append(loss)
+              neg_ll_lst.append(neg_ll)
+              kl_div_lst.append(kl_div)
+              ll_values_lst.append(ll_values)
+              kl_values_lst.append(kl_values)
             end_time = time.time()
+            # Concatenate all the loss metric components into their own tensors.
+            loss = tf.reduce_mean(tf.concat(loss_lst, axis=0))
+            neg_ll = tf.reduce_mean(tf.concat(neg_ll_lst, axis=0))
+            kl_div = tf.reduce_mean(tf.concat(kl_div_lst, axis=0))
+            ll_values = tf.concat(ll_values_lst, axis=0)
+            kl_values = tf.concat(kl_values_lst, axis=0)
 
             # Get Validation Metrics
             # Only has one iteration, so not sure why loop is needed?
@@ -839,6 +849,7 @@ class VAE:
               val_loss, val_neg_ll, val_kl_div, val_ll_values, val_kl_values = self.compute_loss(
                   val_x
                   )
+
             display.clear_output(wait=False)
             print(
                 f"Epoch: {epoch}, Train set Loss: {loss},\n " + \
@@ -898,20 +909,23 @@ class VAE:
             )
 
     #@tf.function
-    def train_step(self, x_true):
+    def train_step(self, x_true, return_loss_components=True):
         """Executes one training step and returns the loss.
 
         This function computes the loss and gradients, and uses the latter to
         update the model's parameters.
         """
         with tf.GradientTape() as tape:
-            loss = self.compute_loss(
-                x_true, train=True, loss_coupling=self.loss_coupling
+            loss, neg_ll, kl_div, ll_values, kl_values = self.compute_loss(
+                x_true, loss_only=False, loss_coupling=self.loss_coupling
                 )
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(
             zip(gradients, self.model.trainable_variables)
             )
+        if return_loss_components:
+          return loss, neg_ll, kl_div, ll_values, kl_values
+        return
 
     def log_normal_pdf(self, sample, mean, logvar, raxis=1):
         log2pi = tf.math.log(2. * np.pi)
@@ -980,7 +994,7 @@ class VAE:
 
         return coupled_divergence
 
-    def compute_loss(self, x_true, train=False, loss_coupling=0.0):
+    def compute_loss(self, x_true, loss_only=False, loss_coupling=0.0):
         x_recons_logits, z_sample, mean, logvar = self.model(x_true)
 
 
@@ -1044,7 +1058,7 @@ class VAE:
           loss = neg_ll_mean + self.beta*kl_div_mean
 
 
-        if train:
+        if loss_only:
             return loss
         return loss, neg_ll_mean, kl_div_mean, \
                tf.cast(logpx_z, tf.float64), tf.cast(kl_div, tf.float64)
