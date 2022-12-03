@@ -8,18 +8,9 @@ Holds the base model for CIFAR.
 """
 import tensorflow as tf
 
+from Sampler_Z import Sampler_Z
 from tensorflow import keras as tfk
 from tensorflow.keras import layers as tfkl
-
-
-class Sampler_Z(tfkl.Layer):   
-
-    def call(self, inputs):
-        mean, logvar = inputs
-        eps = tf.random.normal(shape=mean.shape)
-        z_sample = eps * tf.exp(logvar * .5) + mean
-
-        return z_sample
 
 
 class EncoderZ(tfkl.Layer):
@@ -27,17 +18,17 @@ class EncoderZ(tfkl.Layer):
     def __init__(self, z_dim, n_filter_base, dtype, name='decoder', **kwargs):
         super(EncoderZ, self).__init__(name=name, **kwargs)
 
-        self.conv_layers = tf.keras.Sequential(
+        self.conv_layers = tfk.Sequential(
           [
-              tf.keras.layers.InputLayer(input_shape=(32, 32, 3)),
-              tf.keras.layers.Conv2D(filters=32, kernel_size=3, strides=(2, 2),
+              tfkl.InputLayer(input_shape=(32, 32, 3)),
+              tfkl.Conv2D(filters=32, kernel_size=3, strides=(2, 2),
                                      activation='relu', dtype=dtype),
-              tf.keras.layers.Conv2D(filters=64, kernel_size=3, strides=(2, 2),
+              tfkl.Conv2D(filters=64, kernel_size=3, strides=(2, 2),
                                      activation='relu', dtype=dtype),
-              tf.keras.layers.Conv2D(filters=128, kernel_size=3, 
+              tfkl.Conv2D(filters=128, kernel_size=3, 
                                      strides=(2, 2), activation='relu',
                                      dtype=dtype),
-              tf.keras.layers.Flatten()
+              tfkl.Flatten()
           ]
         )
         
@@ -70,25 +61,25 @@ class DecoderX(tfkl.Layer):
     def __init__(self, z_dim, n_filter_base, dtype, name='decoder', **kwargs):
         super(DecoderX, self).__init__(name=name, **kwargs)
 
-        self.deconv_layers = tf.keras.Sequential(
+        self.deconv_layers = tfk.Sequential(
             [
-                tf.keras.layers.InputLayer(input_shape=(z_dim,)),
-                tf.keras.layers.Dense(units=4*4*128, activation=tf.nn.relu,
+                tfkl.InputLayer(input_shape=(z_dim,)),
+                tfkl.Dense(units=4*4*128, activation=tf.nn.relu,
                                       dtype=dtype),
-                tf.keras.layers.Reshape(target_shape=(4, 4, 128)),
-                tf.keras.layers.Conv2DTranspose(filters=128, kernel_size=3,
+                tfkl.Reshape(target_shape=(4, 4, 128)),
+                tfkl.Conv2DTranspose(filters=128, kernel_size=3,
                                                 strides=2, padding='same',
                                                 activation='relu',
                                                 dtype=dtype),
-                tf.keras.layers.Conv2DTranspose(filters=64, kernel_size=3,
+                tfkl.Conv2DTranspose(filters=64, kernel_size=3,
                                                 strides=2, padding='same',
                                                 activation='relu',
                                                 dtype=dtype),
-                tf.keras.layers.Conv2DTranspose(filters=32, kernel_size=3,
+                tfkl.Conv2DTranspose(filters=32, kernel_size=3,
                                                 strides=2, padding='same',
                                                 activation='relu',
                                                 dtype=dtype),
-                tf.keras.layers.Conv2DTranspose(filters=3, kernel_size=3,
+                tfkl.Conv2DTranspose(filters=3, kernel_size=3,
                                                 strides=1, padding='same',
                                                 dtype=dtype),
             ]
