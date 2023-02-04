@@ -13,7 +13,6 @@ import tensorflow_probability as tfp
 from matplotlib import colors as mc
 from matplotlib import pyplot as plt
 from tensorflow import cast, float64, reshape
-from .VAECIFAR import VAE
 
 
 def train_VAE(loss_coupling, 
@@ -30,7 +29,8 @@ def train_VAE(loss_coupling,
               model_path, 
               test_name,
               show_display,
-              early_stop
+              early_stop,
+              cvae_type
               ):
   '''This function runs an experiment with the passed in parameters.
 
@@ -66,6 +66,8 @@ Inputs
     Whether or not to display plots while training.
   early_stop : int
     Max number of epochs to run since the last improvement.
+  cvae_type : str
+      Either MNIST or CIFAR for one of the two networks.
 
   Returns
   -------
@@ -76,6 +78,12 @@ Inputs
       A trained VAE object.
 
   '''
+  if cvae_type.lower() == 'cifar':
+      print('Importing CIFAR CVAE')
+      from .VAECIFAR import VAE
+  else:
+      print('Importing MNIST CVAE')
+      from .VAEMNIST import VAE
   
   print(test_name)
   #Setting parameter string for files to be named    
@@ -132,7 +140,8 @@ def train_VAEs(loss_coupling_vals,
                random_seed, 
                model_path,
                show_display,
-               early_stop
+               early_stop,
+               cvae_type
                ):
   '''This function runs experiments with the passed in parameters and 
   parameter lists.
@@ -169,6 +178,8 @@ def train_VAEs(loss_coupling_vals,
     Whether or not to display plots while training.
   early_stop : int
     Max number of epochs to run since the last improvement.
+  cvae_type : str
+      Either MNIST or CIFAR for one of the two networks.
 
   Returns
   -------
@@ -196,7 +207,8 @@ def train_VAEs(loss_coupling_vals,
             model_path=model_path, 
             test_name=test_name,
             show_display=show_display,
-            early_stop=early_stop
+            early_stop=early_stop,
+            cvae_type=cvae_type
             )
 
         vae_dict[display_name] = trained_vae
