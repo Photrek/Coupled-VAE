@@ -23,7 +23,7 @@ setup(
     packages=find_packages(exclude=("tests",)),
     python_requires='>= 3.6',
     install_requires=[
-        "pandas", "tensorflow", "numpy", "tqdm", "nsc", "sklearn", "matplotlib", "pathlib", "tensorflow_datasets"
+        "pandas", "tensorflow", "numpy", "tqdm", "nsc", "scikit-learn", "matplotlib", "pathlib", "tensorflow_datasets"
     ],
     classifiers=[
         'Intended Audience :: Science/Research',
