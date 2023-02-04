@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "coupledvae"
+version = "0.0.12"
+authors = [
+  { name="John Clements", email="jkclements2016@gmail.com" },
+]
+description = "Package holding code for Coupled VAE paper."
+license = {file = "LICENSE.txt"}
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+keywords = ["coupling", "variational auto-encoder", "vae"]
+
+# Requirements: This is done differently by poetry!
+dependencies = [
+    "pandas", "tensorflow", "numpy", "tqdm", "nsc", "sklearn", "matplotlib", "pathlib", "tensorflow_datasets"
+]
+[project.urls]
+"Homepage" = "https://github.com/Photrek/Coupled-VAE"
+"Bug Tracker" = "https://github.com/Photrek/Coupled-VAE/issues"
