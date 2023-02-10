@@ -1,1 +1,0 @@
-Coupled Variational Autoencoder
