@@ -1,3 +1,4 @@
+LICENSE
 LICENSE.txt
 README.md
 pyproject.toml
@@ -12,7 +13,6 @@ coupledvae/Visualize.py
 coupledvae/__init__.py
 coupledvae/__version__.py
 coupledvae/experiment_utils.py
-coupledvae/experiment_utils_MNIST.py
 coupledvae/setup_funcs.py
 coupledvae.egg-info/PKG-INFO
 coupledvae.egg-info/SOURCES.txt

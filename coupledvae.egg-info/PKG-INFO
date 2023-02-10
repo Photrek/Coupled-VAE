@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: coupledvae
-Version: 0.0.12
+Version: 0.0.13
 Summary: Package holding code for Coupled VAE paper.
 Home-page: https://github.com/Photrek/Coupled-VAE.git
 Author: Kevin R. Chen, Kenric P. Nelson, John Clements, Hong Xiang Yue, and William Thistleton
@@ -687,6 +687,7 @@ Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: OS Independent
 Requires-Python: >= 3.6
 Description-Content-Type: text/markdown
+License-File: LICENSE
 License-File: LICENSE.txt
 
 # Coupled Variational Autoencoder
