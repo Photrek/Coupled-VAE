@@ -99,9 +99,9 @@ class VAE:
               kl_values_lst.append(kl_values)
             end_time = time.time()
             # Concatenate all the loss metric components into their own tensors.
-            loss = tf.reduce_mean(tf.concat(loss_lst, axis=0))
-            neg_ll = tf.reduce_mean(tf.concat(neg_ll_lst, axis=0))
-            kl_div = tf.reduce_mean(tf.concat(kl_div_lst, axis=0))
+            loss = tf.reduce_mean(tf.stack(loss_lst, axis=0))
+            neg_ll = tf.reduce_mean(tf.stack(neg_ll_lst, axis=0))
+            kl_div = tf.reduce_mean(tf.stack(kl_div_lst, axis=0))
             ll_values = tf.concat(ll_values_lst, axis=0)
             kl_values = tf.concat(kl_values_lst, axis=0)
         
@@ -224,9 +224,9 @@ class VAE:
             kl_values_lst.append(kl_values)
         
         # Concatenate all the loss metric components into their own tensors.
-        loss = tf.reduce_mean(tf.concat(loss_lst, axis=0))
-        neg_ll = tf.reduce_mean(tf.concat(neg_ll_lst, axis=0))
-        kl_div = tf.reduce_mean(tf.concat(kl_div_lst, axis=0))
+        loss = tf.reduce_mean(tf.stack(loss_lst, axis=0))
+        neg_ll = tf.reduce_mean(tf.stack(neg_ll_lst, axis=0))
+        kl_div = tf.reduce_mean(tf.stack(kl_div_lst, axis=0))
         ll_values = tf.concat(ll_values_lst, axis=0)
         kl_values = tf.concat(kl_values_lst, axis=0)
         
