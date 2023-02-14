@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: coupledvae
-Version: 0.0.13
+Version: 0.0.14
 Summary: Package holding code for Coupled VAE paper.
 Home-page: https://github.com/Photrek/Coupled-VAE.git
 Author: Kevin R. Chen, Kenric P. Nelson, John Clements, Hong Xiang Yue, and William Thistleton
