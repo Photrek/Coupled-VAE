@@ -3,7 +3,7 @@ tensorflow
 numpy
 tqdm
 nsc
-sklearn
+scikit-learn
 matplotlib
 pathlib
 tensorflow_datasets
