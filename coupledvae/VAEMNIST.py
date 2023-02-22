@@ -150,7 +150,7 @@ class VAE:
             gmean = GeneralizedMean(ll_values, kl_values, self.loss_coupling, self.z_dim)
         
             # Visualize / Display
-            display_list = [10 * x for x in range(1,41)]
+            display_list = [n_epoch_display * x for x in range(1, n_epoch + 1)]
             if epoch in display_list:
               z_sample, _, _ = self.model.encoder(val_sample)
               viz = Visualize(self.z_dim,
