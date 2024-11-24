@@ -89,38 +89,8 @@ def coupled_subtraction(x: torch.Tensor, y: torch.Tensor, kappa: float) -> torch
     """
     return (x - y) / (1 + kappa * y)
 
-def coupled_mse(input: torch.Tensor, recons: torch.Tensor, kappa: float = 0.0) -> torch.Tensor:
-    """
-    Computes the coupled mean squared error (MSE) loss.
-    :param input: Ground truth image (torch.Tensor)
-    :param recons: Reconstructed image (torch.Tensor)
-    :param kappa: Coupling parameter (float)
-    :return: Coupled MSE loss (torch.Tensor)
-    """
-    
-    return F.mse_loss(recons, input, reduction='mean')
-
-    # Flatten the tensors to 1D for processing
-    input_flat = input.view(input.size(0), -1)  
-    recons_flat = recons.view(recons.size(0), -1)  
-    
-    # Calculate the coupled error
-    #errors = coupled_subtraction(recons_flat, input_flat, kappa=kappa)
-    errors = (recons_flat - input_flat)
-    
-    # Apply the coupled power on the errors
-    coupled_power_errors = coupled_power(errors, 2, kappa=kappa)  # Generalized squaring of errors
-    
-    # Apply the coupled sum on the powered errors
-    coupled_sum_errors = coupled_sum(coupled_power_errors, kappa=kappa)  # Sum over pixels for each image
-    
-    # Average over batch
-    coupled_mse_loss = coupled_sum_errors.mean()  # Mean over batch
-    
-    return coupled_mse_loss
-
 # Coupled Divergence Function
-def coupled_divergence(mu, logvar, mu_hat, logvar_hat, kappa):
+def coupled_gaussians_divergence(mu, logvar, mu_hat, logvar_hat, kappa):
     if kappa == 0.0:
         std = torch.exp(0.5 * logvar)
         std_hat = torch.exp(0.5 * logvar_hat)
@@ -145,3 +115,57 @@ def coupled_divergence(mu, logvar, mu_hat, logvar_hat, kappa):
     coupled_div = (1 / (2 * kappa)) * torch.prod(term1 * term2 * term3_exp, dim=1) - torch.prod(term4, dim=1)
 
     return coupled_div
+
+def coupled_cross_entropy(pred, target, kappa):
+    """
+    Computes the coupled cross-entropy loss.
+
+    :param pred: (Tensor) Predicted probabilities [B x C x H x W]
+    :param target: (Tensor) Ground truth labels [B x C x H x W]
+    :param kappa: (float) Coupling parameter
+    :return: (Tensor) Coupled cross-entropy loss
+    """
+    # Ensure predictions are in the range (0, 1)
+    pred = torch.sigmoid(pred)
+    
+    # Coupled logarithm for predictions
+    log_q = coupled_logarithm(pred, kappa)
+    log_1_minus_q = coupled_logarithm(1 - pred, kappa)
+    
+    # Compute coupled cross-entropy
+    coupled_ce = target * log_q + (1 - target) * log_1_minus_q
+    
+    return -coupled_ce.sum()  # Sum over all dimensions except batch size
+
+def coupled_mse(input: torch.Tensor, recons: torch.Tensor, kappa: float = 0.0) -> torch.Tensor:
+    """
+    Computes the coupled MSE loss, a generalization of MSE with a coupled logarithm and exponential term.
+    
+    :param input: Ground truth image (torch.Tensor)
+    :param recons: Reconstructed image (torch.Tensor)
+    :param kappa: Coupling parameter (float)
+    :return: Coupled MSE loss (torch.Tensor)
+    """
+    # Calculate the squared differences
+    squared_diff = (input - recons) ** 2
+    
+    # Apply exponential to the squared differences
+    exp_squared_diff = torch.exp(squared_diff)
+    
+    # Apply the coupled logarithm to the exponential squared differences
+    coupled_mse_loss = coupled_logarithm(exp_squared_diff, kappa)
+    
+    # Sum over all pixels and average over the batch
+    return coupled_mse_loss.mean()
+
+def compute_elbo(recons, input, mu, logvar, mu_hat, logvar_hat, kappa, kld_weight):
+    """
+    Computes the Evidence Lower Bound (ELBO) using coupled MSE and coupled Gaussian divergence.
+    """
+    # Use coupled MSE as the reconstruction loss
+    recons_loss = coupled_mse(input, recons, kappa)
+    kld_loss = coupled_gaussians_divergence(mu, logvar, mu_hat, logvar_hat, kappa)
+    
+    # Compute ELBO
+    elbo = recons_loss + kld_weight * kld_loss.mean()
+    return elbo, recons_loss, kld_loss
