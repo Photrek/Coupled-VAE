@@ -1,0 +1,33 @@
+model_params:
+  name: 'CoupledVAE'
+  in_channels: 3
+  latent_dim: 128
+  prior_variance: 1.0
+  
+data_params:
+  data_path: "/Users/igoroliveira/Downloads/celeba/corrupted_gaussian_celeba/"
+  train_batch_size: 64
+  val_batch_size: 64
+  patch_size: 64
+  num_workers: 4
+
+exp_params:
+  LR: 0.001
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.001
+  manual_seed: 1265
+  kappa: 0.0000
+  alpha: 2.0
+  n_latent_samples: 1  # Number of latent variables per input image
+  n_generated_per_z: 1  # Number of images generated per latent variable
+  
+trainer_params:
+  max_epochs: 1
+  #gradient_clip_val: 1.5
+  #accumulate_grad_batches: 3  
+
+logging_params:
+  save_dir: "logs/"
+  name: "coupledVAE"
+
