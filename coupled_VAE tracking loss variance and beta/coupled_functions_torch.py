@@ -197,31 +197,33 @@ def regular_mse(input: torch.Tensor, recons: torch.Tensor) -> torch.Tensor:
     mse_loss = F.mse_loss(recons, input, reduction='mean')
     return mse_loss
 
-def regular_gaussian_divergence(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
-    """
-    Computes the KL divergence between two Gaussians.
 
-    :param mu: Mean of the latent space distribution (torch.Tensor)
-    :param logvar: Log variance of the latent space distribution (torch.Tensor)
-    :return: KL divergence (torch.Tensor)
-    """
-    kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-    return kld.mean()  # Average over the batch
+def regular_gaussian_divergence(mu: torch.Tensor, logvar: torch.Tensor, prior_variance: float) -> torch.Tensor:
+  """
+  Computes the KL divergence between two Gaussians.
+  """
+  prior_var = torch.tensor(prior_variance, device=mu.device)
+  prior_logvar = torch.log(prior_var)
+  
+  kld = -0.5 * torch.sum(
+    1 + logvar - prior_logvar - (mu.pow(2) + logvar.exp()) / prior_var,
+    dim=1
+  )
+  return kld.mean()  # Average over the batch
 
-def regular_elbo(recons: torch.Tensor, input: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor, kld_weight: float) -> torch.Tensor:
-    """
-    Computes the Evidence Lower Bound (ELBO) using regular MSE and Gaussian divergence.
-
-    :param recons: Reconstructed image (torch.Tensor)
-    :param input: Ground truth image (torch.Tensor)
-    :param mu: Mean of the latent space distribution (torch.Tensor)
-    :param logvar: Log variance of the latent space distribution (torch.Tensor)
-    :param kld_weight: Weighting factor for the KL divergence
-    :return: Tuple containing ELBO, reconstruction loss, and KL divergence
-    """
-    recons_loss = regular_mse(input, recons)
-    kld_loss = regular_gaussian_divergence(mu, logvar)
+def regular_elbo(
+    recons: torch.Tensor, input: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor, kld_weight: float, prior_variance: float) -> torch.Tensor:
+        """
+        Computes the Evidence Lower Bound (ELBO) using regular MSE and Gaussian divergence.
     
-    # ELBO is the sum of reconstruction loss and weighted KL divergence
-    elbo = recons_loss + kld_weight * kld_loss
-    return elbo, recons_loss, kld_loss
+        :param recons: Reconstructed image (torch.Tensor)
+        :param input: Ground truth image (torch.Tensor)
+        :param mu: Mean of the latent space distribution (torch.Tensor)
+        :param logvar: Log variance of the latent space distribution (torch.Tensor)
+        :param kld_weight: Weighting factor for the KL divergence
+        :return: Tuple containing ELBO, reconstruction loss, and KL divergence
+        """
+        recons_loss = regular_mse(input, recons)
+        kld_loss = regular_gaussian_divergence(mu, logvar, prior_variance)
+        elbo = recons_loss + kld_weight * kld_loss
+        return elbo, recons_loss, kld_loss

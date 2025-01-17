@@ -1,13 +1,14 @@
 model_params:
   name: 'CoupledVAE'
   in_channels: 3
-  latent_dim: 128
-  prior_variance: 1.0
+  latent_dim: 32
+  prior_variance: 1000.0
   
 data_params:
-  data_path: "/Users/igoroliveira/Downloads/celeba/corrupted_gaussian_celeba/"
-  train_batch_size: 64
-  val_batch_size: 64
+  data_path: "/Users/igoroliveira/Downloads/celeba/img_align_celeba/"
+  #data_path: '/mnt/data/RiskIntel/cvae-paper/celeba/celeba/img_align_celeba/'
+  train_batch_size: 128
+  val_batch_size: 128
   patch_size: 64
   num_workers: 4
 
@@ -15,7 +16,7 @@ exp_params:
   LR: 0.001
   weight_decay: 0.0
   scheduler_gamma: 0.95
-  kld_weight: 0.001
+  kld_weight: 1.0
   manual_seed: 1265
   kappa: 0.0000
   alpha: 2.0

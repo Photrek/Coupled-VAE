@@ -4,28 +4,31 @@ from torch import nn
 from torch.nn import functional as F
 from typing import List
 from coupled_functions_torch import *
-
+import torch.nn.init as init
 
 class CoupledVAE(BaseVAE):
-    
     def __init__(self, in_channels: int, latent_dim: int, hidden_dims: List = None, **kwargs) -> None:
         super(CoupledVAE, self).__init__()
         
-        self.latent_dim = latent_dim
+        # Store the parameters passed to the model
+        self.params = kwargs  # Store all extra arguments as params
+        self.logvar = None
+        self.mu = None
+        self.prior_variance = kwargs.get('prior_variance')
         
+        self.latent_dim = latent_dim
         modules = []
         if hidden_dims is None:
             hidden_dims = [32, 64, 128, 256, 512]
             
         # Build Encoder
         for h_dim in hidden_dims:
-            modules.append(
-                nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels=h_dim, kernel_size=3, stride=2, padding=1),
-                    nn.BatchNorm2d(h_dim),
-                    nn.LeakyReLU()
-                )
+            layer = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels=h_dim, kernel_size=3, stride=2, padding=1),
+                nn.BatchNorm2d(h_dim),
+                nn.LeakyReLU()
             )
+            modules.append(layer)
             in_channels = h_dim
             
         self.encoder = nn.Sequential(*modules)
@@ -35,34 +38,76 @@ class CoupledVAE(BaseVAE):
         # Build Decoder
         modules = []
         self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * 4)
-        
         hidden_dims.reverse()
-        
         for i in range(len(hidden_dims) - 1):
-            modules.append(
-                nn.Sequential(
-                    nn.ConvTranspose2d(hidden_dims[i], hidden_dims[i + 1], kernel_size=3, stride=2, padding=1, output_padding=1),
-                    nn.BatchNorm2d(hidden_dims[i + 1]),
-                    nn.LeakyReLU()
-                )
+            layer = nn.Sequential(
+                nn.ConvTranspose2d(hidden_dims[i], hidden_dims[i + 1], kernel_size=3, stride=2, padding=1, output_padding=1),
+                nn.BatchNorm2d(hidden_dims[i + 1]),
+                nn.LeakyReLU()
             )
+            modules.append(layer)
             
         self.decoder = nn.Sequential(*modules)
-        
         self.final_layer = nn.Sequential(
             nn.ConvTranspose2d(hidden_dims[-1], hidden_dims[-1], kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(hidden_dims[-1]),
             nn.LeakyReLU(),
-            nn.Conv2d(hidden_dims[-1], out_channels=3, kernel_size=3, padding=1),  # Change to 3 channels
-            nn.Sigmoid()  # Keep Sigmoid for cross-entropy loss
+            nn.Conv2d(hidden_dims[-1], out_channels=3, kernel_size=3, padding=1)
         )
+        
+        # Initialize weights
+        self._initialize_weights()
+        
+        # Print some weights to verify initialization
+        print("Sample weights from the first encoder layer:")
+        print(self.encoder[0][0].weight[:5])  # Prints the first 5 convolutional weights
+        
+    def _initialize_weights(self):
+        """
+        Initializes weights for all layers in the model using specific strategies for 
+        each layer type to ensure random intialization but compatible to each layer to avoid vanishing/exploding gradients.
+        """
+        for m in self.modules():  # Iterate through all modules (layers) in the model
+            # For convolutional layers (standard and transposed)
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+                # Use Kaiming (He) initialization, optimized for 'Leaky ReLU' activations
+                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
+                if m.bias is not None:  # If the layer has biases
+                    # Initialize biases to zero for simplicity
+                    init.constant_(m.bias, 0)
+                
+            # For fully connected (linear) layers
+            elif isinstance(m, nn.Linear):
+                # Use Xavier (Glorot) initialization for linear layers
+                # Optimized for tanh or linear activation functions
+                init.xavier_normal_(m.weight)
+                if m.bias is not None:  # If the layer has biases
+                    # Initialize biases to zero for simplicity
+                    init.constant_(m.bias, 0)
+                
+            # For batch normalization layers
+            elif isinstance(m, nn.BatchNorm2d):
+                # Initialize weights (scaling parameters gamma) to 1
+                init.constant_(m.weight, 1)
+                # Initialize biases (shift parameters beta) to 0
+                init.constant_(m.bias, 0)
+                
+        print("Weights initialized randomly.")
         
     def encode(self, input: torch.Tensor) -> List[torch.Tensor]:
         result = self.encoder(input)
         result = torch.flatten(result, start_dim=1)
         mu = self.fc_mu(result)
-        log_var = self.fc_var(result)
-        return [mu, log_var]
+        logvar = self.fc_var(result)
+        
+        self.mu = mu  # Store mu for logging
+        self.logvar = logvar  # Store logvar for logging
+        
+        # Print to confirm values
+        #print(f"Mu computed in encode(): {mu}")
+        #print(f"Logvar computed in encode(): {logvar}")
+        
+        return [mu, logvar]    
     
     def decode(self, z: torch.Tensor) -> torch.Tensor:
         result = self.decoder_input(z)
@@ -98,7 +143,7 @@ class CoupledVAE(BaseVAE):
         kld_weight = kwargs['M_N']
         
         # Compute ELBO using the regular components
-        elbo, recons_loss, kld_loss = regular_elbo(recons, input, mu, log_var, kld_weight)
+        elbo, recons_loss, kld_loss = regular_elbo(recons, input, mu, log_var, kld_weight, prior_variance=self.params['prior_variance'])
         
         return {
             'loss': elbo,
